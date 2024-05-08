@@ -1,0 +1,160 @@
+# Spatial analyses
+
+```{r load_data_spatial, warning=FALSE, comments="", message=FALSE}
+load("data/data.Rdata")
+quality <- read_tsv("results/quality.tsv")
+alpha_filtered <- read_tsv("results/alpha_div_filtered.tsv")
+alpha_unfiltered <- read_tsv("results/alpha_div_unfiltered.tsv")
+beta <- read_tsv("results/beta_div.tsv")
+```
+
+## Load image
+```{r load_image, warning=FALSE, comments="", message=FALSE}
+#Based on Bryan measurements in 2023/08/11
+#tl=top-left, br=bottom-right
+slide1_tl <- c(250,2212) # (x, y) for top-left
+slide1_br <- c(25660,77470)    # (x, y) for bottom-right
+membrane1_tl <- c(4962,8698) # (x, y) for top-left
+membrane1_br <- c(21013,53732) # (x, y) for bottom-right
+
+slide2_tl <- c(28983,2004) # (x, y) for top-left
+slide2_br <- c(54565,77541) # (x, y) for bottom-right
+membrane2_tl <- c(33689,8698) # (x, y) for top-left
+membrane2_br <- c(49650,53658) # (x, y) for bottom-right
+
+slide3_tl <- c(64978,1938) # (x, y) for top-left
+slide3_br <- c(90644,77372) # (x, y) for bottom-right
+membrane3_tl <- c(69768,8658) # (x, y) for top-left
+membrane3_br <- c(85819,53692) # (x, y) for bottom-right
+
+slide4_tl <- c(93780,1946) # (x, y) for top-left
+slide4_br <- c(119690,77465) # (x, y) for bottom-right
+membrane4_tl <- c(98718,8682) # (x, y) for top-left
+membrane4_br <- c(114760,53772) # (x, y) for bottom-right
+
+# Detect slide
+x_dim <- sample_metadata %>%
+  filter(cryosection == "G121eO301A") %>%
+  select(Xcoord) %>%
+  summarise(x_min=min(Xcoord),x_max=max(Xcoord))
+
+if(x_dim[1] > membrane1_tl[1] & x_dim[2] < membrane1_br[1]){
+    slide="membrane1"
+    slide_dim=c(membrane1_tl,membrane1_br)
+    }
+if(x_dim[1] > membrane2_tl[1] & x_dim[2] < membrane2_br[1]){
+    slide="membrane2"
+    slide_dim=c(membrane2_tl,membrane2_br)
+    }
+if(x_dim[1] > membrane3_tl[1] & x_dim[2] < membrane3_br[1]){
+    slide="membrane3"
+    slide_dim=c(membrane3_tl,membrane3_br)
+    }
+if(x_dim[1] > membrane4_tl[1] & x_dim[2] < membrane4_br[1]){
+    slide="membrane4"
+    slide_dim=c(membrane4_tl,membrane4_br)
+    }
+
+    
+slide_img <- readJPEG("data/G121eO301.jpg", native = TRUE)
+
+# defining the x coordinates 
+xpos <- c(75415,76897,77419)
+  
+# defining the y coordinates 
+ypos <- c(27819,30198,29908)
+  
+data_frame = data.frame(xpos = xpos,  ypos = ypos) 
+ggplot(data_frame, aes(xpos, ypos)) +
+  coord_cartesian(ylim = c(slide_dim[2],slide_dim[4]))+
+  xlim(c(slide_dim[1],slide_dim[3])) +
+  geom_point(color="red") +
+  theme_classic() +
+  theme(panel.background = element_rect(fill='transparent'),
+         plot.background = element_rect(fill='transparent', color=NA),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         legend.background = element_rect(fill='transparent'),
+         legend.box.background = element_rect(fill='transparent'))+
+  inset_element(p = slide_img, 
+                left = 0, 
+                right = 1, 
+                top = 1, 
+                bottom = 0, align_to = 'panel', on_top=FALSE)
+
+
+```
+## Spatial overview
+
+```{r spatial_overview_caecum, warning=FALSE, comments="", message=FALSE, fig.height=8, fig.width=10, fig.fullwidth=TRUE}
+sample_metadata_filt <- sample_metadata %>%
+      filter(!is.na(Xcoord)) %>%
+      left_join(alpha_filtered %>% select(microsample,neutral), by=join_by(microsample==microsample)) %>%
+      filter(cryosection == "G121eO301A") %>%
+      left_join(quality, by=join_by(microsample==microsample))
+
+beta_filtered <- beta %>%
+      left_join(sample_metadata_filt %>% select(microsample,Xcoord,Ycoord), by=join_by(first==microsample)) %>%
+      rename(x=Xcoord,y=Ycoord) %>%
+      left_join(sample_metadata_filt %>% select(microsample,Xcoord,Ycoord), by=join_by(second==microsample)) %>%
+      rename(xend=Xcoord,yend=Ycoord) %>%
+      arrange(neutral)
+  
+sample_metadata_filt %>%
+      ggplot(aes(x=Xcoord, y=Ycoord)) +
+        geom_segment(data=beta_filtered, aes(x=x,y=y,xend=xend, yend=yend, color = neutral), size = 1) +
+        scale_color_gradient(low = "#f4f4f4", high = "grey", name = "Dissimilarity") +
+        new_scale_color() +
+        geom_point(aes(color=quality),size=4) +
+        scale_color_gradient(low = "red", high = "green", name = "Quality") +
+        theme_classic()
+```
+
+```{r spatial_overview_caecum_highqual, warning=FALSE, comments="", message=FALSE, fig.height=8, fig.width=10, fig.fullwidth=TRUE}
+sample_metadata_filtered <- sample_metadata %>%
+      filter(!is.na(Xcoord)) %>%
+      left_join(alpha_filtered %>% select(microsample,neutral), by=join_by(microsample==microsample)) %>%
+      filter(cryosection == "G121eO301A") %>%
+      left_join(quality, by=join_by(microsample==microsample)) %>%
+      filter(quality>=5)
+
+beta_filtered <- beta %>%
+      inner_join(sample_metadata_filtered %>% select(microsample,Xcoord,Ycoord), by=join_by(first==microsample)) %>%
+      rename(x=Xcoord,y=Ycoord) %>%
+      inner_join(sample_metadata_filtered %>% select(microsample,Xcoord,Ycoord), by=join_by(second==microsample)) %>%
+      rename(xend=Xcoord,yend=Ycoord) %>%
+      arrange(neutral)
+  
+sample_metadata_filtered %>%
+      ggplot(aes(x=Xcoord, y=Ycoord)) +
+        geom_segment(data=beta_filtered, aes(x=x,y=y,xend=xend, yend=yend, color = neutral), size = 1) +
+        scale_color_gradient(low = "#f4f4f4", high = "grey", name = "Dissimilarity") +
+        new_scale_color() +
+        geom_point(size=4) +
+        theme_classic()
+```
+
+## Taxon-specific visualisations
+
+```{r order_space, warning=FALSE, comments="", message=FALSE, fig.height=8, fig.width=10, fig.fullwidth=TRUE}
+taxon_level="order"
+taxon="o__Lactobacillales"
+
+genome_counts %>%
+  mutate_at(vars(-genome),~./sum(.)) %>% #apply TSS nornalisation
+  pivot_longer(-genome, names_to = "microsample", values_to = "count") %>% #reduce to minimum number of columns
+  left_join(., genome_metadata, by = join_by(genome == genome)) %>% #append genome metadata
+  group_by(microsample,!!sym(taxon_level)) %>%
+  summarise(relabun=sum(count)) %>%
+  filter(!!sym(taxon_level) == taxon) %>%
+  left_join(., sample_metadata, by = join_by(microsample == microsample)) %>% #append sample metadata
+  filter(cryosection == "G121eO301A") %>%
+  left_join(quality, by=join_by(microsample==microsample)) %>%
+  filter(quality>=5) %>%
+  mutate(Xcoord=round(Xcoord,0)) %>%
+  mutate(Ycoord=round(Ycoord,0)) %>%
+  ggplot(aes(x=Xcoord, y=Ycoord, color=relabun)) +
+        geom_point(size=4) +
+        scale_color_gradient(low = "white", high = "blue") +
+        theme_classic()
+```
