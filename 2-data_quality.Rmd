@@ -7,7 +7,7 @@ load("data/data.Rdata")
 ## Load statistics
 
 ```{r load_sequencing_stats, warning=FALSE, comments="", message=FALSE}
-read_stats1 <- read_tsv("https://sid.erda.dk/share_redirect/D9oEqxuxql/reports/by_step/reads_data/multiqc_fastqc.txt", 
+read_stats1 <- read_tsv("https://sid.erda.dk/share_redirect/AEwnrYt63R/reports/by_step/reads_data/multiqc_fastqc.txt", 
                         col_types = cols_only("Sample" = col_character(),
                                               "Total Sequences" = col_double(),
                                               "%GC" = col_double(),
@@ -26,7 +26,7 @@ read_stats <- bind_rows(read_stats1,read_stats2) %>%
 ```
 
 ```{r load_host_mapping_stats, warning=FALSE, comments="", message=FALSE}
-host_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/b9ZbTPY0kQ/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt",
+host_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/AEwnrYt63R/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt",
                                  "https://sid.erda.dk/share_redirect/GbFL7VgO1w/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt")) %>%
     mutate(reference = case_when(
         grepl("GRCh38", Sample, ignore.case = TRUE) ~ "human",
@@ -41,7 +41,7 @@ host_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/b9ZbTPY0kQ/
 ```
 
 ```{r load_human_mapping_stats, warning=FALSE, comments="", message=FALSE}
-human_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/b9ZbTPY0kQ/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt",
+human_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/AEwnrYt63R/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt",
                                  "https://sid.erda.dk/share_redirect/GbFL7VgO1w/reports/by_step/preprocess_data/multiqc_samtools_flagstat.txt")) %>%
     mutate(reference = case_when(
         grepl("GRCh38", Sample, ignore.case = TRUE) ~ "human",
@@ -57,7 +57,7 @@ human_mapping_stats <- read_tsv(c("https://sid.erda.dk/share_redirect/b9ZbTPY0kQ
 
 ```{r load_mag_mapping_stats, warning=FALSE, comments="", message=FALSE}
 quantification_stats  <- read_tsv(c(
-  "https://sid.erda.dk/share_redirect/D9oEqxuxql/reports/by_step/quantify_data/multiqc_samtools_stats.txt",
+  "https://sid.erda.dk/share_redirect/AEwnrYt63R/reports/by_step/quantify_data/multiqc_samtools_stats.txt",
    "https://sid.erda.dk/share_redirect/GbFL7VgO1w/reports/by_step/quantify_data/multiqc_samtools_stats.txt")) %>%
    filter(str_detect(Sample, "mgg-pbdrep")) %>%
    mutate(Sample = str_extract(Sample, "M\\d+")) %>%
@@ -96,13 +96,13 @@ quality_stats %>%
 quality_stats %>%
     left_join(sample_metadata,by=join_by(microsample==microsample)) %>%
     filter(section != "Ileum") %>%
-    ggplot(aes(x=percent_unique,y=microsample,fill=section))+
+    ggplot(aes(x=percent_unique,y=microsample,fill=collection))+
       geom_col()+
       scale_fill_manual(values=c("#a3d1cf","#d1a3cf")) +
       geom_vline(xintercept=35, linetype="dashed", color = "red", size=1) + 
       facet_nested(batch + section + type ~ ., scales="free", space="free", switch = "y") +
       theme(strip.text.y.left = element_text(angle = 0)) +
-      labs(x="Percentage of non-duplicates", y="Microsamples", fill="Library protocol")
+      labs(x="Percentage of non-duplicates", y="Microsamples", fill="Collection success")
 ```
 
 ### GC %
@@ -111,7 +111,7 @@ quality_stats %>%
 quality_stats %>%
     left_join(sample_metadata,by=join_by(microsample==microsample)) %>%
     filter(section != "Ileum") %>%
-    ggplot(aes(x=percent_gc,y=microsample,fill=section))+
+    ggplot(aes(x=percent_gc,y=microsample,fill=collection))+
       geom_col()+
       scale_fill_manual(values=c("#a3d1cf","#d1a3cf")) +
       geom_vline(xintercept=60, linetype="dashed", color = "red", size=1) + 
@@ -163,6 +163,10 @@ quality_stats %>%
       theme(strip.text.y.left = element_text(angle = 0)) +
       labs(x="Mapped to MAGs (%)", y="Microsamples", fill="Library protocol")
 ```
+
+### Domain-adjusted mapping rate
+
+
 
 ## Biplots
 
@@ -231,13 +235,13 @@ quality %>% write_tsv("results/quality.tsv")
 quality %>%
     left_join(sample_metadata,by=join_by(microsample==microsample)) %>%
     filter(section != "Ileum") %>%
-    ggplot(aes(x=quality,y=microsample,fill=section))+
+    ggplot(aes(x=quality,y=microsample,fill=collection))+
       geom_col()+
       scale_fill_manual(values=c("#a3d1cf","#d1a3cf")) +
       geom_vline(xintercept=5, linetype="dashed", color = "red", size=1) + 
       facet_nested(batch + section + type ~ ., scales="free", space="free", switch = "y") +
       theme(strip.text.y.left = element_text(angle = 0)) +
-      labs(x="Quality score", y="Microsamples", fill="Library protocol")
+      labs(x="Quality score", y="Microsamples", fill="Collection success")
 ```
 
 ```{r quality_overview, warning=FALSE, comments="", message=FALSE, fig.height=8, fig.width=10, fig.fullwidth=TRUE}

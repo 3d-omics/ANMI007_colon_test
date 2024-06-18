@@ -4,11 +4,11 @@
 
 ```{r sample_metadata, message=FALSE}
 sample_metadata <- airtable("4-MSE-Info", "appKakM1bnKSekwuW") %>% #get base ID from Airtable browser URL
-  read_airtable(., fields = c("ID","LabBatch_text","IntestinalSection","SampleType","Xcoord","Ycoord","size","cryosection_text","buffer_text"), id_to_col = TRUE) %>% #get 3 columns from MAGs table
+  read_airtable(., fields = c("ID","LabBatch_text","IntestinalSection","SampleType","Xcoord","Ycoord","size","cryosection_text","buffer_text","Collection_Success","UsedCycles"), id_to_col = TRUE) %>% #get 3 columns from MAGs table
   filter(LabBatch_text %in% c("MSEB0006","MSEB0010")) %>%
-  rename(batch=LabBatch_text,microsample=ID,section=IntestinalSection,type=SampleType,cryosection=cryosection_text,buffer=buffer_text) %>%
-  select(microsample,section,type,batch,cryosection,buffer,Xcoord,Ycoord,size) %>%
-  unnest(c(section, Xcoord, Ycoord, size)) %>%
+  rename(batch=LabBatch_text,microsample=ID,section=IntestinalSection,type=SampleType,cryosection=cryosection_text,buffer=buffer_text,collection=Collection_Success,cycles=UsedCycles) %>%
+  select(microsample,section,type,batch,cryosection,buffer,Xcoord,Ycoord,size,collection,cycles) %>%
+  unnest(c(section, Xcoord, Ycoord, size, collection, cycles)) %>%
   arrange(microsample)
 ```
 

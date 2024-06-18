@@ -91,6 +91,7 @@ sample_metadata_filt <- sample_metadata %>%
       filter(!is.na(Xcoord)) %>%
       left_join(alpha_filtered %>% select(microsample,neutral), by=join_by(microsample==microsample)) %>%
       filter(cryosection == "G121eO301A") %>%
+      filter(cycles < 16) %>%
       left_join(quality, by=join_by(microsample==microsample))
 
 beta_filtered <- beta %>%
